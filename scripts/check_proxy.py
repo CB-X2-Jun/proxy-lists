@@ -3,6 +3,8 @@ import json
 import time
 import socks
 import ssl
+import subprocess
+import random
 from pathlib import Path
 from country_map import COUNTRY_MAP
 
@@ -31,13 +33,11 @@ TEST_APIS_SOCKS4 = [
     ("204.79.197.200", 80, "/", False),
 ]
 
-
 def parse_proxy(line: str):
     proto, rest = line.split("//", 1)
     ip, port, country = rest.strip().split(":")
     proto = proto.replace(":", "")
     return proto, ip, int(port), country
-
 
 # ─────────────────────────────
 # 第一阶段：延迟检测
@@ -93,97 +93,82 @@ def socks4_latency(ip, port, timeout=FAST_TIMEOUT):
             s.close()
         except Exception:
             pass
+
 # ─────────────────────────────
 # 第二阶段：深度检测（status-only）
 # ─────────────────────────────
 def deep_check(proto, ip, port):
-    apis = TEST_APIS_SOCKS4 if proto == "socks4" else TEST_APIS
+    if proto in ("socks4", "socks5", "http"):
+        apis = TEST_APIS_SOCKS4 if proto == "socks4" else TEST_APIS
+        for host, hport, path, use_ssl in apis:
+            try:
+                s = socks.socksocket()
 
-    for host, hport, path, use_ssl in apis:
-        try:
-            s = socks.socksocket()
+                # ───────── proxy 类型设置 ─────────
+                if proto == "socks4":
+                    s.set_proxy(socks.SOCKS4, ip, port)
+                elif proto == "socks5":
+                    s.set_proxy(socks.SOCKS5, ip, port)
+                else:  # http
+                    s.set_proxy(socks.HTTP, ip, port)
 
-            # ───────── proxy 类型设置 ─────────
-            if proto == "socks4":
-                s.set_proxy(socks.SOCKS4, ip, port)
-
-            elif proto == "socks5":
-                s.set_proxy(socks.SOCKS5, ip, port)
-
-            elif proto == "http":
-                s.set_proxy(socks.HTTP, ip, port)
-
-            elif proto == "https":
-                # HTTPS proxy：先 TCP 连 proxy，再手动 TLS 包裹
                 s.settimeout(DEEP_TIMEOUT)
-                s.connect((ip, port))
+                s.connect((host, hport))
 
-                ctx = ssl._create_unverified_context()
-                s = ctx.wrap_socket(s, server_hostname=ip)
-
-                # 后面手动 CONNECT
-                connect_req = (
-                    f"CONNECT {host}:{hport} HTTP/1.1\r\n"
-                    f"Host: {host}:{hport}\r\n"
-                    f"User-Agent: proxy-check\r\n\r\n"
-                )
-                s.sendall(connect_req.encode())
-
-                resp = s.recv(4096)
-                if b" 200 " not in resp.split(b"\r\n", 1)[0]:
-                    continue
-
-                # CONNECT 成功后，继续 TLS 到目标
                 if use_ssl:
-                    ctx2 = ssl.create_default_context()
-                    s = ctx2.wrap_socket(s, server_hostname=host)
+                    ctx = ssl.create_default_context()
+                    ss = ctx.wrap_socket(s, server_hostname=host)
+                else:
+                    ss = s
 
-                # 发送 HTTP 请求
+                # ───────── 发送 HTTP 请求 ─────────
                 req = (
                     f"GET {path} HTTP/1.1\r\n"
                     f"Host: {host}\r\n"
                     f"User-Agent: proxy-check\r\n"
                     f"Connection: close\r\n\r\n"
                 )
-                s.sendall(req.encode())
-                data = s.recv(256)
-                s.close()
+                ss.sendall(req.encode())
+                data = ss.recv(256)
+                ss.close()
 
-                if data and b" 200 " in data.split(b"\r\n", 1)[0]:
+                if data and b"200" in data.split(b"\r\n", 1)[0]:
                     return True
-
-                continue  # 下一个 API
-
-            else:
+            except Exception:
                 continue
+        return False
 
-            # ───────── HTTP / SOCKS 通用路径 ─────────
-            s.settimeout(DEEP_TIMEOUT)
-            s.connect((host, hport))
+    elif proto == "https":
+        # curl 多目标方案
+        urls = [
+            "https://ifconfig.me",
+            "https://httpbin.org/ip",
+            "https://api.ipify.org/?format=json",
+            "https://api.i.pn/json",
+            "https://ipin.io/",
+        ]
+        random.shuffle(urls)  # 随机顺序尝试
+        proxy_str = f"https://{ip}:{port}"
 
-            if use_ssl:
-                ctx = ssl.create_default_context()
-                ss = ctx.wrap_socket(s, server_hostname=host)
-            else:
-                ss = s
+        for url in urls:
+            cmd = [
+                "curl",
+                "-s",
+                "-x", proxy_str,
+                "--proxy-insecure",
+                "--max-time", str(DEEP_TIMEOUT),
+                url
+            ]
+            try:
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                if result.returncode == 0 and result.stdout.strip():
+                    return True  # 成功连通即可
+            except Exception:
+                continue
+        return False
 
-            req = (
-                f"GET {path} HTTP/1.1\r\n"
-                f"Host: {host}\r\n"
-                f"User-Agent: proxy-check\r\n"
-                f"Connection: close\r\n\r\n"
-            )
-            ss.sendall(req.encode())
-            data = ss.recv(256)
-            ss.close()
-
-            if data and b" 200 " in data.split(b"\r\n", 1)[0]:
-                return True
-
-        except Exception:
-            continue
-
-    return False
+    else:
+        return False
 
 # ─────────────────────────────
 # 主流程
@@ -255,7 +240,6 @@ async def main():
     # 写当前可用节点（给前端）
     with open(PUBLIC_FILE, "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
