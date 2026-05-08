@@ -2,11 +2,11 @@ name: Proxy Check
 
 concurrency:
   group: proxy-update
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 on:
   schedule:
-    - cron: "0 */2 * * *"
+    - cron: "0 * * * *"
     # - cron: "0 0 * * *"
     # - cron: "25 1 * * *"
     # - cron: "50 2 * * *"
