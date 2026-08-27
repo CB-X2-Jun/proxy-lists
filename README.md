@@ -1,16 +1,20 @@
 # Proxy-Lists🌐
 
-这是一个定时更新的 proxy list，包含 HTTPS|SOCKS4|SOCKS5 节点。（HTTPS、SOCKS5全都支持SSL，SOCKS4不知道😅，反正基本都不行）
+这是一个定时更新的 proxy list，包含 HTTP|HTTPS|SOCKS4|SOCKS5 节点。（HTTP(S)、SOCKS5全都支持SSL，SOCKS4不知道😅，反正基本都不行）
 
 原理：
 
 所有代理信息储存在 proxy.txt（`protocol://IP:port:country`），GitHub Action 定时执行，检查可用性，更新历史记录（`/data/history.json`），可用的储存于 `/pubulic/proxies.json`，再 deploy pages。
 
+注意：
+
+“HTTPS”协议是指 **TLS CONNECT TO PROXY**，即，连接代理时需要使用 HTTPS 协议，且此类代理通常使用自签名证书，使用时需要忽略证书错误（比如 `curl` 的时候加上 `-k` 或 `--proxy-insecure`）
+
 ## 测试方式✅
 
-HTTPS & SOCKS5 的代理，使用 `https://ifconfig.me/ip` `https://httpbin.org/ip` `https://api.ipify.org/?format=json` `https://api.i.pn/json`。
+HTTP(S) & SOCKS5 的代理，使用 `https://ifconfig.me/ip` `https://httpbin.org/ip` `https://api.ipify.org/?format=json` `https://api.i.pn/json` `ipin.io`。
 
-SOCKS4 代理，使用 `3.95.121.17/ip` `3.210.41.225/ip` `44.197.91.61/ip` `52.204.75.48/ip` `54.236.169.179/ip` `98.91.115.81/ip`。
+SOCKS4 代理，使用 `34.107.221.82` `34.223.124.45` `91.189.91.39` `128.31.0.62` `204.79.197.200`。
 
 ## 贡献新代理✨
 
@@ -20,6 +24,7 @@ SOCKS4 代理，使用 `3.95.121.17/ip` `3.210.41.225/ip` `44.197.91.61/ip` `52.
 
 ```plain
 http://xxx.xxx.xxx.xxx:xxx:country
+https://xxx.xxx.xxx.xxx:xxx:country
 socks4://xxx.xxx.xxx.xxx:xxx:country
 socks5://xxx.xxx.xxx.xxx:xxx:country
 ```
