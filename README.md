@@ -33,4 +33,4 @@ socks5://xxx.xxx.xxx.xxx:xxx:country
 
 ## Stars⭐
 
-[![Star History Chart](https://api.star-history.com/svg?repos=CB-X2-Jun/proxy-lists&type=date&legend=top-left)](https://www.star-history.com/#CB-X2-Jun/proxy-lists&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/chart?repos=CB-X2-Jun/proxy-lists&type=date&legend=top-left&sealed_token=_4ZD1VtZDFwL109MrMDgYR5zC6WTsmDHSfbvIFjMrVCvdOoyBeW4DLoOndRpW_OTRxDm4QqZdxxhEajNXTi7TuR15SMzYHKh5deTZ7osjmoIyox9Q6lgIg)](https://www.star-history.com/?repos=CB-X2-Jun%2Fproxy-lists&type=date&legend=top-left)
