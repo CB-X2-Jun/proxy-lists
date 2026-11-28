@@ -6,7 +6,7 @@ concurrency:
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "0 0,6,12,18 * * *"   # 一天 4 次
     # - cron: "0 0 * * *"
     # - cron: "25 1 * * *"
     # - cron: "50 2 * * *"
